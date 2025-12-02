@@ -25,6 +25,12 @@ export default function BPTracker() {
   const [isLoadingSheet, setIsLoadingSheet] = useState(false);
   const [sheetError, setSheetError] = useState('');
 
+  // Debug: Log on component mount
+  useEffect(() => {
+    console.log('🔵 BP Tracker component mounted');
+    console.log('🔵 WEBHOOK_URL:', WEBHOOK_URL);
+  }, []);
+
   // Splash screen with video effect
   useEffect(() => {
     const video = videoRef.current;
@@ -203,6 +209,8 @@ export default function BPTracker() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    console.log('=== handleSubmit called ===');
+
     if (!systolic || !diastolic) {
       setStatusMsg('Please enter both numbers.');
       return;
@@ -224,12 +232,14 @@ export default function BPTracker() {
     };
 
     // Debug: log payload before sending
-    console.log('Sending payload:', payload);
-    console.log('Payload JSON:', JSON.stringify(payload));
+    console.log('=== PAYLOAD DEBUG ===');
+    console.log('Payload object:', payload);
+    console.log('Payload JSON string:', JSON.stringify(payload));
+    console.log('Webhook URL:', WEBHOOK_URL);
 
     try {
-      // Use cors mode to properly send JSON with Content-Type header
-      // Zoho Flow webhooks should accept CORS requests
+      // Try cors mode first (proper JSON with headers)
+      console.log('Attempting fetch with CORS mode...');
       const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
         mode: 'cors',
@@ -239,11 +249,13 @@ export default function BPTracker() {
         body: JSON.stringify(payload),
       });
       
-      // Log response for debugging (only works in cors mode)
+      console.log('Fetch completed, response status:', response.status);
+      console.log('Response OK:', response.ok);
+      
       if (response.ok) {
-        console.log('Webhook response OK:', response.status);
+        console.log('✅ Webhook response OK:', response.status);
       } else {
-        console.warn('Webhook response not OK:', response.status);
+        console.warn('⚠️ Webhook response not OK:', response.status);
       }
 
       const newLogs = [payload, ...logs];
@@ -258,9 +270,40 @@ export default function BPTracker() {
       setStatus('success');
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
-      console.error(err);
-      setStatus('error');
-      setStatusMsg('Failed to send. Check URL.');
+      console.error('❌ FETCH ERROR:', err);
+      console.error('Error name:', err.name);
+      console.error('Error message:', err.message);
+      
+      // If CORS fails, try no-cors as fallback
+      if (err.name === 'TypeError' || err.message.includes('CORS')) {
+        console.log('CORS failed, trying no-cors mode as fallback...');
+        try {
+          await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(payload),
+          });
+          console.log('✅ no-cors request sent (can\'t verify response)');
+          
+          const newLogs = [payload, ...logs];
+          setLogs(newLogs);
+          setSystolic('');
+          setDiastolic('');
+          setPulse('');
+          setSymptoms([]);
+          setAspirin(false);
+          setWater(0);
+          setStatus('success');
+          setTimeout(() => setStatus('idle'), 3000);
+        } catch (noCorsErr) {
+          console.error('❌ no-cors also failed:', noCorsErr);
+          setStatus('error');
+          setStatusMsg('Failed to send. Check connection.');
+        }
+      } else {
+        setStatus('error');
+        setStatusMsg('Failed to send. Check URL.');
+      }
     }
   };
 
@@ -546,7 +589,11 @@ export default function BPTracker() {
             </div>
 
             <button 
-              onClick={handleSubmit}
+              type="button"
+              onClick={(e) => {
+                console.log('🔴 Button clicked!');
+                handleSubmit(e);
+              }}
               disabled={status === 'sending'}
               className={`w-full py-4 rounded-xl text-lg font-semibold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
                 status === 'success' ? 'bg-green-500 text-white' : 
