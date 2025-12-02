@@ -1,6 +1,8 @@
 # Cloudflare Pages Build Settings
 
-## Build Configuration
+> **📖 For complete setup guide, see `CLOUDFLARE_SETUP.md`**
+
+## Quick Reference
 
 ### Build Settings (in Cloudflare Dashboard)
 
@@ -9,13 +11,11 @@
 **Build output directory:** `dist`  
 **Root directory:** (leave empty, or set to `apps/QiBP` if deploying from monorepo root)
 
+**Node version:** `18.x` or `20.x` (recommended: `20.x`)
+
 ### Environment Variables
 
 No environment variables required (webhook URL is hard-coded in the app).
-
-### Node Version
-
-**Node version:** `18.x` or `20.x` (recommended: `20.x`)
 
 ---
 
