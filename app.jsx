@@ -212,8 +212,6 @@ export default function BPTracker() {
       category: getBPCategory(parseInt(systolic), parseInt(diastolic)),
       timestamp: new Date().toISOString(),
       readableDate: new Date().toLocaleString(),
-      person: 'Friend',         // change if you want
-      source: 'bp_tracker_v1',  // helps you filter in Zoho
     };
 
     try {
