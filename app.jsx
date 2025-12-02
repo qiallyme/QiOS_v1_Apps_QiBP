@@ -29,6 +29,14 @@ export default function BPTracker() {
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
+      // Start muted for autoplay (browser requirement)
+      // Then unmute once video starts playing
+      const handlePlay = () => {
+        video.muted = false;
+        video.removeEventListener('play', handlePlay);
+      };
+      video.addEventListener('play', handlePlay);
+
       video.play().catch(err => {
         console.log('Video autoplay prevented:', err);
         // If autoplay fails, just show the splash briefly
@@ -53,6 +61,7 @@ export default function BPTracker() {
 
       return () => {
         clearTimeout(fadeTimer);
+        video.removeEventListener('play', handlePlay);
         video.removeEventListener('ended', handleVideoEnd);
       };
     } else {
@@ -206,7 +215,7 @@ export default function BPTracker() {
       systolic: parseInt(systolic),
       diastolic: parseInt(diastolic),
       pulse: pulse ? parseInt(pulse) : null,
-      symptoms: symptoms.join(', '),
+      symptoms: symptoms.length > 0 ? symptoms.join(', ') : '',
       aspirin: aspirin ? 'Yes' : 'No',
       water_cups: water,
       category: getBPCategory(parseInt(systolic), parseInt(diastolic)),
@@ -214,13 +223,28 @@ export default function BPTracker() {
       readableDate: new Date().toLocaleString(),
     };
 
+    // Debug: log payload before sending
+    console.log('Sending payload:', payload);
+    console.log('Payload JSON:', JSON.stringify(payload));
+
     try {
-      await fetch(WEBHOOK_URL, {
+      // Use cors mode to properly send JSON with Content-Type header
+      // Zoho Flow webhooks should accept CORS requests
+      const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
-        mode: 'no-cors', 
-        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
+      
+      // Log response for debugging (only works in cors mode)
+      if (response.ok) {
+        console.log('Webhook response OK:', response.status);
+      } else {
+        console.warn('Webhook response not OK:', response.status);
+      }
 
       const newLogs = [payload, ...logs];
       setLogs(newLogs);
